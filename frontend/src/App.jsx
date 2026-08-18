@@ -1,5 +1,9 @@
-// Componente principal que gestiona la navegación entre todos los módulos
+// Componente principal que gestiona autenticación y navegación entre módulos
 import { useState } from 'react';
+
+// Importar componentes de autenticación
+import Login   from './components/Login';
+import Registro from './components/Registro';
 
 // Importar componentes del módulo de clientes
 import ClienteLista      from './components/ClienteLista';
@@ -22,41 +26,55 @@ import CitaFormulario from './citas/CitaFormulario';
 import CitaReagendar  from './citas/CitaReagendar';
 
 const App = () => {
-    // Estado que controla el módulo activo en el menú
+    // Estado de autenticación
+    const [usuarioActivo, setUsuarioActivo] = useState(null);
+    const [vistaAuth, setVistaAuth]         = useState('login');
+
+    // Estado de navegación del sistema
     const [moduloActivo, setModuloActivo] = useState('clientes');
+    const [vista, setVista]               = useState('lista');
+    const [idActivo, setIdActivo]         = useState(null);
 
-    // Estado que controla la vista dentro de cada módulo
-    const [vista, setVista] = useState('lista');
-
-    // Estado para guardar el ID del registro a editar o reagendar
-    const [idActivo, setIdActivo] = useState(null);
-
-    // Función para navegar a la lista de cualquier módulo
-    const irALista = () => setVista('lista');
-
-    // Función para navegar al formulario de nuevo registro
-    const irANuevo = () => setVista('nuevo');
-
-    // Función para navegar al formulario de edición
-    const irAEditar = (id) => {
-        setIdActivo(id);
-        setVista('editar');
+    // Manejar login exitoso
+    const handleLoginExitoso = (usuario) => {
+        setUsuarioActivo(usuario);
     };
 
-    // Función para navegar al formulario de reagendamiento
-    const irAReagendar = (id) => {
-        setIdActivo(id);
-        setVista('reagendar');
+    // Cerrar sesión
+    const handleCerrarSesion = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        setUsuarioActivo(null);
+        setVistaAuth('login');
+        setModuloActivo('clientes');
+        setVista('lista');
     };
 
-    // Función para cambiar de módulo y resetear la vista
+    // Funciones de navegación entre vistas
+    const irALista     = ()   => setVista('lista');
+    const irANuevo     = ()   => setVista('nuevo');
+    const irAEditar    = (id) => { setIdActivo(id); setVista('editar'); };
+    const irAReagendar = (id) => { setIdActivo(id); setVista('reagendar'); };
+
     const cambiarModulo = (modulo) => {
         setModuloActivo(modulo);
         setVista('lista');
         setIdActivo(null);
     };
 
-    // Renderizar el componente según el módulo y vista activos
+    // Renderizar vista de autenticación si no hay usuario activo
+    if (!usuarioActivo) {
+        return vistaAuth === 'login'
+            ? <Login
+                onIrARegistro={() => setVistaAuth('registro')}
+                onLoginExitoso={handleLoginExitoso}
+              />
+            : <Registro
+                onIrALogin={() => setVistaAuth('login')}
+              />;
+    }
+
+    // Renderizar el módulo activo
     const renderizarVista = () => {
         if (moduloActivo === 'clientes') {
             if (vista === 'lista')  return <ClienteLista onNuevo={irANuevo} onEditar={irAEditar} />;
@@ -107,33 +125,45 @@ const App = () => {
                         Citas
                     </button>
                 </div>
+                {/* Info del usuario y botón cerrar sesión */}
+                <div style={estilos.userInfo}>
+                    <span style={estilos.nombreUsuario}>
+                        {usuarioActivo.nombre} ({usuarioActivo.rol})
+                    </span>
+                    <button style={estilos.btnCerrarSesion} onClick={handleCerrarSesion}>
+                        Cerrar sesión
+                    </button>
+                </div>
             </nav>
 
             {/* Contenido del módulo activo */}
-            <main style={estilos.main}>
+            <main>
                 {renderizarVista()}
             </main>
         </div>
     );
 };
 
-// Estilos con la paleta visual de JW HOMEBS
 const estilos = {
-    app:      { fontFamily: 'Arial, sans-serif', minHeight: '100vh',
-                backgroundColor: '#f5ede0' },
-    navbar:   { backgroundColor: '#1a0f08', padding: '12px 24px',
-                display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center' },
-    logo:     { color: '#c49a4a', fontSize: '20px', fontWeight: 'bold' },
-    navLinks: { display: 'flex', gap: '8px' },
-    btnNav:   { backgroundColor: 'transparent', color: '#f5ede0',
-                border: '1px solid #c49a4a', padding: '8px 16px',
-                borderRadius: '4px', cursor: 'pointer', fontSize: '14px' },
-    btnActivo:{ backgroundColor: '#c49a4a', color: '#1a0f08',
-                border: '1px solid #c49a4a', padding: '8px 16px',
-                borderRadius: '4px', cursor: 'pointer', fontSize: '14px',
-                fontWeight: 'bold' },
-    main:     { padding: '0' },
+    app:             { fontFamily: 'Arial, sans-serif', minHeight: '100vh',
+                       backgroundColor: '#f5ede0' },
+    navbar:          { backgroundColor: '#1a0f08', padding: '12px 24px',
+                       display: 'flex', justifyContent: 'space-between',
+                       alignItems: 'center', flexWrap: 'wrap', gap: '8px' },
+    logo:            { color: '#c49a4a', fontSize: '18px', fontWeight: 'bold' },
+    navLinks:        { display: 'flex', gap: '8px' },
+    btnNav:          { backgroundColor: 'transparent', color: '#f5ede0',
+                       border: '1px solid #c49a4a', padding: '8px 16px',
+                       borderRadius: '4px', cursor: 'pointer', fontSize: '14px' },
+    btnActivo:       { backgroundColor: '#c49a4a', color: '#1a0f08',
+                       border: '1px solid #c49a4a', padding: '8px 16px',
+                       borderRadius: '4px', cursor: 'pointer', fontSize: '14px',
+                       fontWeight: 'bold' },
+    userInfo:        { display: 'flex', alignItems: 'center', gap: '12px' },
+    nombreUsuario:   { color: '#f5ede0', fontSize: '13px' },
+    btnCerrarSesion: { backgroundColor: '#bf3d3d', color: 'white', padding: '6px 12px',
+                       border: 'none', borderRadius: '4px', cursor: 'pointer',
+                       fontSize: '13px' },
 };
 
 export default App;

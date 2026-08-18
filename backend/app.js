@@ -6,6 +6,7 @@ import clienteRoutes  from './routes/clienteRoutes.js';
 import barberoRoutes  from './routes/barberoRoutes.js';
 import servicioRoutes from './routes/servicioRoutes.js';
 import citaRoutes     from './routes/citaRoutes.js';
+import authRoutes     from './routes/authRoutes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use('/api/clientes',  clienteRoutes);
 app.use('/api/barberos',  barberoRoutes);
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/citas',     citaRoutes);
+app.use('/api/auth',      authRoutes);
 
 // Ruta de verificación del servidor
 app.get('/', (req, res) => {
