@@ -54,10 +54,10 @@ export const obtenerPorCliente = async (idCliente) => {
 };
 
 // Insertar una nueva cita
-export const insertar = async (fechaCita, horaCita, idCliente, idBarbero, idServicio) => {
+export const insertar = async (fechaCita, horaCita, idCliente, idBarbero, idServicio, estadoCita = 'pendiente') => {
     const [result] = await pool.query(
-        'INSERT INTO citas (fecha_cita, hora_cita, id_cliente, id_barbero, id_servicio) VALUES (?, ?, ?, ?, ?)',
-        [fechaCita, horaCita, idCliente, idBarbero, idServicio]
+        'INSERT INTO citas (fecha_cita, hora_cita, id_cliente, id_barbero, id_servicio, estado_cita) VALUES (?, ?, ?, ?, ?, ?)',
+        [fechaCita, horaCita, idCliente, idBarbero, idServicio, estadoCita]
     );
     return result;
 };

@@ -8,7 +8,7 @@ import servicioRoutes from './routes/servicioRoutes.js';
 import citaRoutes     from './routes/citaRoutes.js';
 import authRoutes     from './routes/authRoutes.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -29,7 +29,11 @@ app.get('/', (req, res) => {
     res.json({ mensaje: 'API JW Home Barber Studio funcionando correctamente' });
 });
 
-// Iniciar el servidor
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+// Iniciar el servidor solo si no estamos en modo test
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+}
+
+export default app;

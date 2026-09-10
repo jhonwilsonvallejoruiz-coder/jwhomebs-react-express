@@ -37,8 +37,8 @@ export const obtenerCitasPorCliente = async (req, res) => {
 // POST - Crear una nueva cita
 export const crearCita = async (req, res) => {
     try {
-        const { fechaCita, horaCita, idCliente, idBarbero, idServicio } = req.body;
-        await citaModel.insertar(fechaCita, horaCita, idCliente, idBarbero, idServicio);
+        const { fechaCita, horaCita, idCliente, idBarbero, idServicio, estadoCita = 'pendiente' } = req.body;
+        await citaModel.insertar(fechaCita, horaCita, idCliente, idBarbero, idServicio, estadoCita);
         res.status(201).json({ mensaje: 'Cita creada exitosamente' });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al crear cita', error });
