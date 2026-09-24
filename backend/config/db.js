@@ -14,6 +14,7 @@ const pool = mysql.createPool({
     user:               process.env.DB_USER     || 'root',
     password:           process.env.DB_PASSWORD || '',
     database:           process.env.DB_NAME     || 'jwhomebs',
+    port:               process.env.DB_PORT     || 3306,
     waitForConnections: true,
     connectionLimit:    10,
 });
