@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // URL base de la API de servicios
-const API_URL = 'http://localhost:5000/api/servicios';
+const API_URL = 'https://jwhomebs-react-express-production-4a26.up.railway.app/api/servicios';
 
 // Obtener todos los servicios
 export const obtenerServicios = async () => {

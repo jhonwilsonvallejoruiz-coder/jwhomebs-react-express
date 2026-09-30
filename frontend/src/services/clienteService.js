@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // URL base de la API del backend
-const API_URL = 'http://localhost:5000/api/clientes';
+const API_URL = 'https://jwhomebs-react-express-production-4a26.up.railway.app/api/clientes';
 
 // Obtener todos los clientes
 export const obtenerClientes = async () => {

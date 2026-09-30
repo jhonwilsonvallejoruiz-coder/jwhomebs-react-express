@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // URL base de la API de autenticación
-const API_URL = 'http://localhost:5000/api/auth';
+const API_URL = 'https://jwhomebs-react-express-production-4a26.up.railway.app/api/auth';
 
 // Registrar un nuevo usuario
 export const registrarUsuario = async (datos) => {
