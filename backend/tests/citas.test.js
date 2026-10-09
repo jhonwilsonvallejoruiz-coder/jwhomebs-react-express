@@ -1,6 +1,7 @@
 // Pruebas unitarias del módulo de citas
 import request from 'supertest';
 import app     from '../app.js';
+import pool    from '../config/db.js';
 
 describe('Módulo de Citas', () => {
 
@@ -9,91 +10,82 @@ describe('Módulo de Citas', () => {
     let idBarbero;
     let idServicio;
 
-    // Datos únicos para evitar colisiones entre ejecuciones y con otros módulos
-    const sufijo         = Date.now();
-    const correoCliente  = `citacliente${sufijo}@correo.com`;
-    const correoBarbero  = `citabarbero${sufijo}@correo.com`;
-    const nombreServicio = `Svc${sufijo}`;
-
-    // Crear los recursos necesarios antes de las pruebas de citas
+    // Crear datos necesarios antes de las pruebas de citas
     beforeAll(async () => {
-        // Crear cliente de prueba y verificar la respuesta
-        const resCliente = await request(app)
-            .post('/api/clientes')
-            .send({
-                nombreCliente:   'Cliente Cita Test',
-                correoCliente,
-                telefonoCliente: '3001234567'
-            });
-        expect(resCliente.statusCode).toBe(201);
+        const sufijo = Date.now();
 
-        // Crear barbero de prueba y verificar la respuesta
-        const resBarbero = await request(app)
-            .post('/api/barberos')
-            .send({
-                nombreBarbero:       'Barbero Cita Test',
-                correoBarbero,
-                especialidadBarbero: 'Corte test'
-            });
-        expect(resBarbero.statusCode).toBe(201);
+        // Crear cliente
+        await request(app).post('/api/clientes').send({
+            nombreCliente:   'CitaCliente',
+            correoCliente:   `citacli${sufijo}@correo.com`,
+            telefonoCliente: '3001234567'
+        });
 
-        // Crear servicio de prueba y verificar la respuesta
-        const resServicio = await request(app)
-            .post('/api/servicios')
-            .send({
-                nombreServicio,
-                precioServicio:   20000,
-                duracionServicio: 30
-            });
-        expect(resServicio.statusCode).toBe(201);
+        // Crear barbero
+        await request(app).post('/api/barberos').send({
+            nombreBarbero:       'CitaBarbero',
+            correoBarbero:       `citabar${sufijo}@correo.com`,
+            especialidadBarbero: 'Corte test'
+        });
 
-        // Obtener los IDs de los registros recién creados filtrando por sus datos únicos
-        const [clientes, barberos, servicios] = await Promise.all([
-            request(app).get('/api/clientes'),
-            request(app).get('/api/barberos'),
-            request(app).get('/api/servicios'),
-        ]);
+        // Crear servicio — máximo 20 caracteres en nombre
+        await request(app).post('/api/servicios').send({
+            nombreServicio:   `Svc${sufijo}`.slice(0, 20),
+            precioServicio:   20000,
+            duracionServicio: 30
+        });
 
-        const clienteCreado  = clientes.body.find((c) => c.correo_cliente === correoCliente);
-        const barberoCreado  = barberos.body.find((b) => b.correo_barbero === correoBarbero);
-        const servicioCreado = servicios.body.find((s) => s.nombre_servicio === nombreServicio);
+        // Obtener los IDs filtrando por correo/nombre único
+        const [clientes]  = await pool.query(
+            'SELECT id_cliente FROM clientes WHERE correo_cliente = ?',
+            [`citacli${sufijo}@correo.com`]
+        );
+        const [barberos]  = await pool.query(
+            'SELECT id_barbero FROM barberos WHERE correo_barbero = ?',
+            [`citabar${sufijo}@correo.com`]
+        );
+        const [servicios] = await pool.query(
+            'SELECT id_servicio FROM servicios WHERE nombre_servicio = ?',
+            [`Svc${sufijo}`.slice(0, 20)]
+        );
 
-        // Verificar que los registros creados fueron localizados
-        expect(clienteCreado).toBeDefined();
-        expect(barberoCreado).toBeDefined();
-        expect(servicioCreado).toBeDefined();
-
-        idCliente  = clienteCreado.id_cliente;
-        idBarbero  = barberoCreado.id_barbero;
-        idServicio = servicioCreado.id_servicio;
+        idCliente  = clientes[0]?.id_cliente;
+        idBarbero  = barberos[0]?.id_barbero;
+        idServicio = servicios[0]?.id_servicio;
     });
 
-    // Limpiar los registros de prueba y cerrar las conexiones de la base de datos
     afterAll(async () => {
         if (idCitaCreada) {
-            await request(app).delete(`/api/citas/${idCitaCreada}`);
+            await pool.query('DELETE FROM citas WHERE id_cita = ?', [idCitaCreada]);
         }
-        await request(app).delete(`/api/clientes/${idCliente}`);
-        await request(app).delete(`/api/barberos/${idBarbero}`);
-        await request(app).delete(`/api/servicios/${idServicio}`);
-
-        const pool = (await import('../config/db.js')).default;
+        if (idCliente)  await pool.query('DELETE FROM clientes  WHERE id_cliente  = ?', [idCliente]);
+        if (idBarbero)  await pool.query('DELETE FROM barberos  WHERE id_barbero  = ?', [idBarbero]);
+        if (idServicio) await pool.query('DELETE FROM servicios WHERE id_servicio = ?', [idServicio]);
         await pool.end();
     });
 
     // Prueba 1: Crear cita
     test('POST /api/citas — debe crear una nueva cita', async () => {
-        const response = await request(app)
-            .post('/api/citas')
-            .send({
-                fechaCita:  '2026-12-01',
-                horaCita:   '10:00',
-                idCliente,
-                idBarbero,
-                idServicio
-            });
+        expect(idCliente).toBeDefined();
+        expect(idBarbero).toBeDefined();
+        expect(idServicio).toBeDefined();
+
+        const response = await request(app).post('/api/citas').send({
+            fechaCita:  '2026-12-01',
+            horaCita:   '10:00',
+            idCliente,
+            idBarbero,
+            idServicio
+        });
         expect(response.statusCode).toBe(201);
         expect(response.body.mensaje).toBe('Cita creada exitosamente');
+
+        // Guardar el ID de la cita creada
+        const [rows] = await pool.query(
+            'SELECT id_cita FROM citas WHERE id_cliente = ? AND fecha_cita = ?',
+            [idCliente, '2026-12-01']
+        );
+        idCitaCreada = rows[0]?.id_cita;
     });
 
     // Prueba 2: Obtener todas las citas
@@ -101,16 +93,6 @@ describe('Módulo de Citas', () => {
         const response = await request(app).get('/api/citas');
         expect(response.statusCode).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
-
-        // Localizar la cita recién creada filtrando por sus datos únicos
-        const citaCreada = response.body.find(
-            (c) => c.id_cliente === idCliente
-                && c.id_barbero === idBarbero
-                && c.id_servicio === idServicio
-        );
-        if (citaCreada) {
-            idCitaCreada = citaCreada.id_cita;
-        }
     });
 
     // Prueba 3: Obtener cita por ID
@@ -147,5 +129,6 @@ describe('Módulo de Citas', () => {
         const response = await request(app).delete(`/api/citas/${idCitaCreada}`);
         expect(response.statusCode).toBe(200);
         expect(response.body.mensaje).toBe('Cita eliminada exitosamente');
+        idCitaCreada = null;
     });
 });
